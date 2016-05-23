@@ -1,44 +1,13 @@
 from time import time
+from datetime import datetime as dt
 
 import numpy as np
+from scipy.stats import multivariate_normal as mnorm
 import pandas as pd
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
-# data = pd.read_csv('./data/raw_data/yellow_tripdata_2015-12.csv')
-
-# drop_cols = [
-#     'VendorID', 'store_and_fwd_flag', 'extra', 'mta_tax',
-#     'tip_amount', 'tolls_amount', 'improvement_surcharge',
-# ]
-
-# data = data.drop(drop_cols, axis=1)
-# data.columns = [
-#     'pickup_time', 'dropoff_time', 'num_pass', 'trip_dist',
-#     'pickup_x', 'pickup_y', 'ratecode', 'dropoff_x', 'dropoff_y',
-#     'pay_type', 'fare_amt', 'tot_amt',
-# ]
-
-# print(data.shape[0])
-# print(np.sum(np.logical_or(data['dropoff_y'] == 0., data['pickup_y'] == 0.)))
-# # 11460573
-# #   184633
-# data = data[data['dropoff_y'] != 0.]
-# data = data[data['pickup_y'] != 0.]
-
-# data.to_pickle('./data/data.p')
-data = pd.read_pickle('./data/data.p')
-
-
-np.random.seed(2634)
-inds = np.random.choice(data.shape[0], 1000000, replace=False)
-sdata = data.iloc[inds]
-
-sdata = sdata[sdata['pickup_x'] < -72.]
-sdata = sdata[sdata['pickup_x'] > -74.3]
-sdata = sdata[sdata['dropoff_x'] < -72.]
-sdata = sdata[sdata['dropoff_x'] > -74.3]
-
-sd = np.array(sdata[['pickup_x', 'pickup_y']])
 
 
 
@@ -68,7 +37,8 @@ def gmm(data, init_mu, init_sigma, init_pi, max_iter=100, diff_tol=1e-3):
         # E-step
         logpdfs = calc_logpdfs(data, curr_mu, curr_sigma)
         probs = calc_probs(logpdfs, curr_pi)
-        logliks.append(np.sum(probs * logpdfs))
+        logliks.append(np.sum(np.log(np.sum(curr_pi*np.exp(logpdfs), axis=1))))
+        # logliks.append(np.sum(probs * logpdfs))
 
         # M-step
         for k in range(len(init_mu)):
@@ -81,74 +51,100 @@ def gmm(data, init_mu, init_sigma, init_pi, max_iter=100, diff_tol=1e-3):
 
         if num_iter >= 2:
             diff = np.abs(logliks[-1] - logliks[-2])
+
+        print(num_iter, logliks[-1])
         num_iter += 1
 
     logpdfs = calc_logpdfs(data, curr_mu, curr_sigma)
     probs = calc_probs(logpdfs, curr_pi)
-    logliks.append(np.sum(probs * logpdfs))
+    logliks.append(np.sum(np.log(np.sum(curr_pi*np.exp(logpdfs), axis=1))))
 
     return (curr_mu, curr_sigma, curr_pi), probs, logliks
 
-def init_pp(data, num_clusters):
-    n = len(data)
-    init = np.zeros((num_clusters, data.shape[1]))
-    init[0] = data[np.random.randint(n)]
 
-    for i in range(1, num_clusters):
-        distances = np.zeros((n, i))
-        for j in range(i):
-            distances[:,j] = la.norm(data - init[j, None], axis=1)
+# data = pd.read_csv('./data/raw_data/yellow_tripdata_2015-12.csv')
 
-        min_ind = np.argmin(distances, axis=1)
-        min_dist = distances[np.arange(n), min_ind]
+# drop_cols = [
+#     'VendorID', 'store_and_fwd_flag', 'extra', 'mta_tax',
+#     'tip_amount', 'tolls_amount', 'improvement_surcharge',
+# ]
 
-        init[i] = data[np.random.choice(n, p=min_dist/np.sum(min_dist))]
+# data = data.drop(drop_cols, axis=1)
+# data.columns = [
+#     'pickup_time', 'dropoff_time', 'num_pass', 'trip_dist',
+#     'pickup_x', 'pickup_y', 'ratecode', 'dropoff_x', 'dropoff_y',
+#     'pay_type', 'fare_amt', 'tot_amt',
+# ]
 
-    return(init)
+# print(data.shape[0])
+# print(np.sum(np.logical_or(data['dropoff_y'] == 0., data['pickup_y'] == 0.)))
+# # 11460573
+# #   184633
+# data = data[data['dropoff_y'] != 0.]
+# data = data[data['pickup_y'] != 0.]
+
+# data['pickup_time'] = pd.to_datetime(data['pickup_time'])
+# data['dropoff_time'] = pd.to_datetime(data['dropoff_time'])
+
+# data.to_pickle('./data/data.p')
+data = pd.read_pickle('./data/data.p')
 
 
 
-from matplotlib import cm
-colors = cm.Paired(np.linspace(0, 1, 10))
+sdata = data.copy()
+sdata = sdata[sdata['pickup_time'] >= '2015-12-07 05:00:00']
+sdata = sdata[sdata['pickup_time'] < '2015-12-11 06:00:00']
 
-km = KMeans(8)
+sdata = sdata[sdata['pickup_x'] < -73]
+sdata = sdata[sdata['dropoff_x'] < -73]
+sdata = sdata[sdata['pickup_x'] > -74.3]
+sdata = sdata[sdata['dropoff_x'] > -74.3]
+sdata = sdata[sdata['pickup_y'] > 39.5]
+sdata = sdata[sdata['dropoff_y'] > 39.5]
+
+np.random.seed(2634)
+inds = np.random.choice(sdata.shape[0], 100000, replace=False)
+sdata = data.iloc[inds]
+
+sd = np.array(sdata[['pickup_x', 'pickup_y']])
+
+
+
+k = 10
+
+# K-Means
+km = KMeans(k, n_jobs=-2)
+start = time()
 km.fit(sd)
+print(time() - start)
 
 pred = km.predict(sd)
 fig = plt.figure()
 ax = fig.add_subplot(111)
-for g, c in zip(range(10), colors):
+for g, c in zip(range(k), cm.Paired(np.linspace(0, 1, k))):
     ax.scatter(sd[pred==g, 0], sd[pred==g, 1], c=c)
 
 
-
-
 # Run GMM
-init_sigma = [np.identity(2) for i in range(8)]
-init_pi = np.array([1 for i in range(8)])/8
+init_sigma = [np.cov(sd, rowvar=0) for i in range(k)]
+init_pi = np.array([1 for i in range(k)])/k
+init_mu = km.cluster_centers_
 
 np.random.seed(2046)
-best_gmm = (None, None, [-np.inf])
-run, iters, logliks = [], [], []
 start = time()
-for i in range(1):
-    init = km.cluster_centers_
-    res = gmm(sd, init, init_sigma, init_pi, max_iter=2000)
-
-    run += [i]*len(res[2])
-    iters += list(range(len(res[2])))
-    logliks += res[2]
-
-    if res[2][-1] > best_gmm[2][-1]:
-        best_gmm = res
+res = gmm(sd, init_mu, init_sigma, init_pi, diff_tol=1e-2, max_iter=1000)
 print(time() - start)
+
+iters = list(range(len(res[2])))
+logliks = res[2]
+
 
 
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
-ax.scatter(sd[:10000, 0], sd[:10000, 1])
-ax.scatter(best_gmm[0][0][:,0], best_gmm[0][0][:,1], color='red')
+ax.scatter(sd[:,0], sd[:,1])
+ax.scatter(res[0][0][:,0], res[0][0][:,1], color='red')
 
 np.savetxt('./data/scoords.txt', sd)
 
