@@ -1,0 +1,183 @@
+\documentclass[12pt]{article}
+
+% General
+\usepackage[round]{natbib}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage[section]{placeins}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage[page]{appendix}
+\usepackage{enumerate}
+
+% Tables/Figures
+\usepackage{lscape}
+\usepackage{booktabs}
+\usepackage{rotating}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{dsfont}
+
+\usepackage{tikz}
+\usetikzlibrary{bayesnet}
+
+% \doublespacing
+\onehalfspacing
+% \singlespacing
+
+% \numberwithin{equation}{section}
+
+\geometry{paper=letterpaper, margin=1in}
+\captionsetup{font=small}
+
+% Code
+\usepackage{textcomp}
+\usepackage{sourcecodepro}
+\usepackage{listings}
+\definecolor{commentgrey}{gray}{0.45}
+\definecolor{backgray}{gray}{0.96}
+\lstset{
+  basicstyle=\footnotesize\ttfamily, keywordstyle=\footnotesize,
+  backgroundcolor=\color{backgray}, commentstyle=\color{commentgrey},
+  frame=single, rulecolor=\color{backgray}, showstringspaces=false,
+  breakatwhitespace=true, breaklines=true, upquote=true,
+  numbers=left, numberstyle=\footnotesize\color{commentgrey}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% User-defined LaTeX commands
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Corr}{Corr}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\newcommand*{\expp}[1]{\exp\left(#1\right)}
+\newcommand*{\foralls}{\ \forall \ }
+\newcommand*{\st}{\text{ s.t. }}
+\newcommand*{\E}{\mathbb E}
+\newcommand*{\R}{\mathbb R}
+\newcommand*{\I}{\mathds{1}}
+\newcommand*{\Prob}{\mathbb P}
+\newcommand*{\convas}[1]{\xrightarrow{#1}}
+\newcommand*{\conv}{\convas{}}
+\newcommand*{\cond}{\;\ifnum\currentgrouptype=16 \middle\fi|\;}
+\newcommand*{\defeq}{%
+  \mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\sffamily def}}}{=}}}
+\newcommand*{\notorth}{\ensuremath{\perp\!\!\!\!\!\!\diagup\!\!\!\!\!\!\perp}}
+\newcommand*{\orth}{\ensuremath{\perp\!\!\!\perp}}
+\newcommand*{\evalat}{\,\big\rvert}
+\newcommand*{\dif}{\,d}
+\newcommand*{\difto}[1]{\,d^#1}
+\newcommand*{\difbot}[1]{\frac{d}{d#1}}
+\newcommand*{\partialbot}[1]{\frac{\partial}{\partial#1}}
+\newcommand*{\m}[1]{\textbf{#1}}
+\newcommand*{\bmath}[1]{\boldsymbol{#1}}
+
+\newcommand*{\yestag}{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*{\notaligned}[1]{\noalign{$\displaystyle #1$}}
+\newcommand*{\ttilde}{{\raise.17ex\hbox{$\scriptstyle\sim$}}}
+
+\makeatletter
+\newsavebox{\mybox}\newsavebox{\mysim}
+\newcommand*{\distas}[1]{%
+  \savebox{\mybox}{\hbox{\kern3pt$\scriptstyle#1$\kern3pt}}%
+  \savebox{\mysim}{\hbox{$\sim$}}%
+  \mathbin{\overset{#1}{\kern\z@\resizebox{\wd\mybox}{\ht\mysim}{$\sim$}}}%
+}
+\makeatother
+\newcommand*{\dist}{\sim}
+\newcommand*{\distiid}{\distas{\text{i.i.d}}}
+
+\makeatletter
+\def\moverlay{\mathpalette\mov@rlay}
+\def\mov@rlay#1#2{\leavevmode\vtop{%
+   \baselineskip\z@skip \lineskiplimit-\maxdimen
+   \ialign{\hfil$\m@th#1##$\hfil\cr#2\crcr}}}
+\newcommand*{\charfusion}[3][\mathord]{
+  #1{\ifx#1\mathop\vphantom{#2}\fi\mathpalette\mov@rlay{#2\cr#3}}
+  \ifx#1\mathop\expandafter\displaylimits\fi}
+\makeatother
+\newcommand*{\cupdot}{\charfusion[\mathbin]{\cup}{\cdot}}
+\newcommand*{\bigcupdot}{\charfusion[\mathop]{\bigcup}{\cdot}}
+
+\newcommand*{\mt}[1]{\text{\normalfont #1}}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem*}{Theorem}
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{lemma}{Lemma}[section]
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{definition*}{Definition}
+\newtheorem{example}{Example}[section]
+\newtheorem*{properties}{Properties}
+
+\newtheoremstyle{algodesc}{}{}{}{}{\bfseries}{.}{ }{}%
+\theoremstyle{algodesc}
+\newtheorem{algodesc}{Algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand*{\colsquare}[3][-3.5pt]{\tikz[baseline=-0.5ex]\draw[#2, fill=#2] (0,#1) rectangle ++(#3,#3);}%
+\definecolor{cmeet}{HTML}{B2DF8A}
+\definecolor{cmideast}{HTML}{FDBF6F}
+\definecolor{cstaff}{HTML}{A6CEE3}
+\definecolor{cpolitics}{HTML}{33A02C}
+\definecolor{cterror}{HTML}{E31A1C}
+\definecolor{cforeign}{HTML}{FF7F00}
+\definecolor{cpress}{HTML}{FB9A99}
+\definecolor{chill}{HTML}{6A3D9A}
+\definecolor{ccomm}{HTML}{1F78B4}
+
+
+\begin{document}
+
+\title{Taxi Trip Density Estimation in NYC\thanks{2016 Applied Statistics Qualifying Exam report.}}
+\author{
+    Roger Fan\footnote{\url{rogerfan@umich.edu}}
+}
+\date{May 26, 2016}
+
+\maketitle
+
+
+\section{Introduction}
+
+
+\section{Data}
+
+
+\section{Density Estimation}
+
+\subsection{Gaussian Mixture Model}
+
+\subsection{Time-Varying Mixing}
+
+
+
+\section{Conclusion}
+
+
+% \bibliographystyle{apa}
+% \bibliography{biblio}
+
+
+\end{document}
