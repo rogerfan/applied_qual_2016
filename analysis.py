@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import multivariate_normal as mnorm
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.mixture import GMM
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
@@ -37,12 +38,10 @@ def gmm(data, init_mu, init_sigma, init_pi, max_iter=100, diff_tol=1e-3):
         logpdfs = calc_logpdfs(data, curr_mu, curr_sigma)
         probs = calc_probs(logpdfs, curr_pi)
         logliks.append(np.sum(np.log(np.sum(curr_pi*np.exp(logpdfs), axis=1))))
-        # logliks.append(np.sum(probs * logpdfs))
 
         # M-step
         for k in range(len(init_mu)):
             curr_mu[k] = np.average(data, axis=0, weights=probs[:,k])
-            # curr_sigma[k] = np.cov(data, rowvar=0, aweights=probs[:,k], ddof=0)
 
             dm = data - curr_mu[k]
             curr_sigma[k] = np.dot(probs[:,k]*dm.T, dm) / np.sum(probs[:,k])
@@ -66,6 +65,7 @@ def gmm_cat(data_raw, cat_raw, init_mu, init_sigma, init_pi=None,
         max_iter=100, diff_tol=1e-3):
     num_cat = len(np.unique(cat_raw))
     num_groups = len(init_mu)
+    num_dim = data_raw.shape[1]
 
     sort_ind = np.argsort(cat_raw)
     cat = cat_raw[sort_ind]
@@ -78,7 +78,7 @@ def gmm_cat(data_raw, cat_raw, init_mu, init_sigma, init_pi=None,
 
     curr_mu = init_mu.copy()
     curr_sigma = init_sigma.copy()
-    if init_pi:
+    if init_pi is not None:
         curr_pi = init_pi
     else:
         curr_pi = np.ones((num_cat, num_groups))/num_groups
@@ -86,30 +86,35 @@ def gmm_cat(data_raw, cat_raw, init_mu, init_sigma, init_pi=None,
     num_iter = 0
     diff = 10
     logliks = []
-    while num_iter < max_iter and diff > diff_tol:
-        # E-step
-        logpdfs = calc_logpdfs(data, curr_mu, curr_sigma)
+    try:
+        while num_iter < max_iter and diff > diff_tol:
+            # E-step
+            logpdfs = calc_logpdfs(data, curr_mu, curr_sigma)
 
-        probs = np.empty(logpdfs.shape)
-        for g, (l, u) in enumerate(cat_bounds):
-            probs[l:u] = calc_probs(logpdfs[l:u], curr_pi[g])
-        logliks.append(np.sum(np.log(
-            np.sum(curr_pi[cat]*np.exp(logpdfs), axis=1))))
+            probs = np.empty(logpdfs.shape)
+            for g, (l, u) in enumerate(cat_bounds):
+                probs[l:u] = calc_probs(logpdfs[l:u], curr_pi[g])
+            logliks.append(np.sum(np.log(
+                np.sum(curr_pi[cat]*np.exp(logpdfs), axis=1))))
 
-        # M-step
-        for k in range(num_groups):
-            curr_mu[k] = np.average(data, axis=0, weights=probs[:,k])
+            # M-step
+            for k in range(num_groups):
+                curr_mu[k] = np.average(data, axis=0, weights=probs[:,k])
 
-            dm = data - curr_mu[k]
-            curr_sigma[k] = np.dot(probs[:,k]*dm.T, dm) / np.sum(probs[:,k])
-        for g, (l, u) in enumerate(cat_bounds):
-            curr_pi[g] = np.mean(probs[l:u], axis=0)
+                dm = data - curr_mu[k]
+                denom = np.sum(probs[:,k]) + 10*np.finfo(float).eps
+                temp_sigma = np.dot(probs[:,k]*dm.T, dm) / denom
+                curr_sigma[k] = temp_sigma + 1e-8*np.eye(num_dim)
+            for g, (l, u) in enumerate(cat_bounds):
+                curr_pi[g] = np.mean(probs[l:u], axis=0)
 
-        if num_iter >= 2:
-            diff = np.abs(logliks[-1] - logliks[-2])
+            if num_iter >= 2:
+                diff = np.abs(logliks[-1] - logliks[-2])
 
-        print(num_iter, logliks[-1])
-        num_iter += 1
+            print(num_iter, logliks[-1])
+            num_iter += 1
+    except KeyboardInterrupt:
+        pass
 
     return (curr_mu, curr_sigma, curr_pi), probs, logliks
 
@@ -159,23 +164,45 @@ for x in [2, 6, 9, 16, 19, 22]:
     plt.axvline(x=x)
 
 
+# BIC
+np.random.seed(2634)
+inds = np.random.choice(sd.shape[0], 200000, replace=False)
+sd_subset = sd[inds]
+hour_cat_subset = hour_cat[inds]
 
-k = 16
+np.random.seed(257456)
+bic = np.array([20, 30, 35, 40, 45, 50, 55, 60])
+bic = np.column_stack((bic, np.zeros(len(bic))))
+for i, k in enumerate(bic[:,0]):
+    print(k)
+    gmm_mod = GMM(n_components=int(k), covariance_type='full', min_covar=1e-8)
+    start = time()
+    gmm_mod.fit(sd_subset)
+    print(time() - start)
+
+    bic[i,1] = gmm_mod.bic(sd_subset)
+
+np.savetxt('./data/bic.txt', bic)
+k = 40
+
 
 # K-Means
-km = KMeans(k, n_jobs=-2)
+km = KMeans(k, n_jobs=-2, random_state=234623)
 start = time()
 km.fit(sd)
 print(time() - start)
 
-pred = km.predict(sd)
-fig = plt.figure()
-ax = fig.add_subplot(111)
-for g, c in zip(range(k), cm.Paired(np.linspace(0, 1, k))):
-    ax.scatter(sd[pred==g, 0], sd[pred==g, 1], c=c)
+with open('./km40.p', 'wb') as f_:
+    pickle.dump(km, f_)
+
+# pred = km.predict(sd)
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+# for g, c in zip(range(k), cm.Paired(np.linspace(0, 1, k))):
+#     ax.scatter(sd[pred==g, 0], sd[pred==g, 1], c=c)
 
 
-# # Run GMM
+# Run GMM
 # init_sigma = [np.cov(sd, rowvar=0) for i in range(k)]
 # init_pi = np.array([1 for i in range(k)])/k
 # init_mu = km.cluster_centers_
@@ -185,23 +212,31 @@ for g, c in zip(range(k), cm.Paired(np.linspace(0, 1, k))):
 # res = gmm(sd, init_mu, init_sigma, init_pi, diff_tol=1e-2, max_iter=1000)
 # print(time() - start)
 
-# iters = list(range(len(res[2])))
-# logliks = res[2]
+# with open('./res40.p', 'wb') as f_:
+#     pickle.dump(res, f_)
 
+np.random.seed(2046)
+gmm_mod = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
+start = time()
+gmm_mod.fit(sd)
+print(time() - start)
+
+with open('./gmm_mod40.p', 'wb') as f_:
+    pickle.dump(gmm_mod, f_)
 
 
 # Run GMM with categories
-init_sigma = [np.cov(sd, rowvar=0) for i in range(k)]
-init_mu = km.cluster_centers_
+init_mu = gmm_mod.means_
+init_sigma = gmm_mod.covars_
+init_pi = np.tile(gmm_mod.weights_, (6, 1))
 
 np.random.seed(2046)
 start = time()
-res_cat = gmm_cat(sd, hour_cat, init_mu, init_sigma,
+res_cat = gmm_cat(sd, hour_cat, init_mu, init_sigma, init_pi,
                   diff_tol=1e-2, max_iter=2000)
 print(time() - start)
 
-
-with open('./res_cat16.p', 'wb') as f_:
+with open('./res_cat40.p', 'wb') as f_:
     pickle.dump(res_cat, f_)
 
 
@@ -209,4 +244,12 @@ fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 ax.scatter(sd[:,0], sd[:,1])
 ax.scatter(res_cat[0][0][:,0], res_cat[0][0][:,1], color='red')
+
+
+
+
+fig = plt.figure()
+ax = fig.add_subplot(1, 1, 1)
+ax.scatter(sd[:,0], sd[:,1])
+ax.scatter(gmm_mod.means_[:,0], gmm_mod.means_[:,1], color='red')
 
