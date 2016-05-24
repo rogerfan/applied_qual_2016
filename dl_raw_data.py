@@ -13,6 +13,7 @@ def download(url, file):
 
 to_dl = [
     ('yellow', '2015', '12'),
+    ('green', '2015', '12'),
 ]
 
 for col, yr, mn in to_dl:
