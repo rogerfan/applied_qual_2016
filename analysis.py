@@ -124,43 +124,37 @@ sd = np.load('./data/data_week_c.npy')
 hour = np.load('./data/data_week_hour.npy')
 
 hour_cat = np.zeros(len(hour), dtype=int)           # Early morning
-hour_cat[np.logical_and( 6 <= hour, hour <  9)] = 1 # Morning rush
+hour_cat[np.logical_and( 7 <= hour, hour <  9)] = 1 # Morning rush
 hour_cat[np.logical_and( 9 <= hour, hour < 16)] = 2 # Work day
-hour_cat[np.logical_and(16 <= hour, hour < 19)] = 3 # Evening rush
-hour_cat[np.logical_and(19 <= hour, hour < 22)] = 4 # Evening
+hour_cat[np.logical_and(16 <= hour, hour < 18)] = 3 # Evening rush
+hour_cat[np.logical_and(18 <= hour, hour < 22)] = 4 # Evening
 hour_cat[np.logical_or( 22 <= hour, hour <  2)] = 5 # Night
-
-# np.random.seed(2634)
-# inds = np.random.choice(sd.shape[0], 100000, replace=False)
-# sd = sd[inds]
-# hour = hour[inds]
-# hour_cat = hour_cat[inds]
 
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 morning_rush = np.array(np.logical_and(7 <= hour, hour < 9))
-ax.scatter(sd[morning_rush, 0], sd[morning_rush, 1], alpha=0.2, lw=0.6, s=10)
-ax.set_xlim(-74.1, -73.7)
-ax.set_ylim(40.5, 40.9)
+ax.scatter(sd[morning_rush, 0], sd[morning_rush, 1], alpha=0.08, lw=0.4, s=10)
+ax.set_xlim(-74.05, -73.75)
+ax.set_ylim(40.55, 40.9)
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 evening_rush = np.array(np.logical_and(16 <= hour, hour < 18))
-ax.scatter(sd[evening_rush, 0], sd[evening_rush, 1], alpha=0.2, lw=0.6, s=10)
-ax.set_xlim(-74.1, -73.7)
-ax.set_ylim(40.5, 40.9)
+ax.scatter(sd[evening_rush, 0], sd[evening_rush, 1], alpha=0.08, lw=0.4, s=10)
+ax.set_xlim(-74.05, -73.75)
+ax.set_ylim(40.55, 40.9)
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
-evening_rush = np.array(np.logical_and(22 <= hour, hour < 24))
-ax.scatter(sd[evening_rush, 0], sd[evening_rush, 1], alpha=0.2, lw=0.6, s=10)
-ax.set_xlim(-74.1, -73.7)
-ax.set_ylim(40.5, 40.9)
+night = np.array(np.logical_and(22 <= hour, hour < 24))
+ax.scatter(sd[night, 0], sd[night, 1], alpha=0.08, lw=0.4, s=10)
+ax.set_xlim(-74.05, -73.75)
+ax.set_ylim(40.55, 40.9)
 
 plt.plot(np.unique(hour, return_counts=True)[0]+0.5,
          np.unique(hour, return_counts=True)[1], color='black')
-for x in [2, 6, 9, 16, 19, 22]:
+for x in [2, 7, 9, 16, 18, 22]:
     plt.axvline(x=x)
 
 
