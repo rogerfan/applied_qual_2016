@@ -136,17 +136,6 @@
 \newtheorem{algodesc}{Algorithm}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newcommand*{\colsquare}[3][-3.5pt]{\tikz[baseline=-0.5ex]\draw[#2, fill=#2] (0,#1) rectangle ++(#3,#3);}%
-\definecolor{cmeet}{HTML}{B2DF8A}
-\definecolor{cmideast}{HTML}{FDBF6F}
-\definecolor{cstaff}{HTML}{A6CEE3}
-\definecolor{cpolitics}{HTML}{33A02C}
-\definecolor{cterror}{HTML}{E31A1C}
-\definecolor{cforeign}{HTML}{FF7F00}
-\definecolor{cpress}{HTML}{FB9A99}
-\definecolor{chill}{HTML}{6A3D9A}
-\definecolor{ccomm}{HTML}{1F78B4}
-
 
 \begin{document}
 
@@ -160,9 +149,19 @@
 
 
 \section{Introduction}
+Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, I will show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, I will use taxi origination locations to hopefully proxy for actual taxi demand.
+
+I use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows me to effectively condense the information from data on millions of taxi trip originations to a finite number of Gaussian distributions over the city.
+
+However, I expect that the demand for taxis would change over time, a factor that would be vital to most applications of this analysis. To better handle this issue, I design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and an Expectation-Maximization (EM) algorithm to estimate it.
 
 
 \section{Data}
+The NYC Taxi and Limousine Commision (TLC) provides extensive data on taxicab trips in New York City for the last several years. This data includes both Yellow cabs, which primarily pick up street hails in Manhattan and at the airports, and Green cabs, which can only be hailed in northern Manhattan and the outer boroughs.
+
+The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which I will be able to use directly, and time data is recorded to the minute, though I will only use data at the hourly frequency in this analysis.
+
+To simplify estimation and computation, I will focus on taxi rides conducted during a single week, December 7-10, 2015. I omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so am left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough number that I feel comfortable simply omitting them. And finally, I remove around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations, leaving me with a final dataset of 1,688,673 taxi trips.
 
 
 \section{Density Estimation}
