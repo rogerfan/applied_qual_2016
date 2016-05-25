@@ -243,7 +243,7 @@ Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the 
 To estimate the GMM model with time-varying mixing proportions described in Equation~\ref{eq:gmm_cat}, we first need to divide time into six categories. Attempting to adhere to common-sense work day divisions, I propose using early morning (2am-7am), morning rush hour (7am-9am), work day (9am-4pm), evening rush hour (4pm-6pm), evening (6pm-10pm), and night (10pm-2am). Figure~\ref{fig:time} shows the frequency of taxi pickups over time as well as these proposed categories. We can see that the categories seem to correspond well to natural divisions in data, with boundaries roughly tracking change points in the histogram.
 
 \begin{figure}[htb] \centering
-  \includegraphics[width=0.8\linewidth]{./include/time.png}
+  \includegraphics[width=0.8\linewidth]{./include/time.pdf}
   \caption{Taxi pickups over time with proposed time categories.}
   \label{fig:time}
 \end{figure}
