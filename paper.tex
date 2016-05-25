@@ -159,7 +159,7 @@ However, I expect that the demand for taxis would change over time, a factor tha
 \section{Data}
 The NYC Taxi and Limousine Commision (TLC) provides extensive data on taxicab trips in New York City for the last several years.\footnote{Available at \url{http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml}.} This data includes both yellow cabs, which primarily pick up street hails in Manhattan and at the airports, and green cabs, which can only be hailed in northern Manhattan and the outer boroughs.
 
-The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which we will be able to use directly, and time data is recorded to the minute, though we will only use data at the hourly frequency in this analysis.
+The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which we will be able to use directly, and time data is recorded to the second, though we will primarily be using data at the hourly frequency in this analysis.
 
 To simplify estimation and computation, we will focus on taxi rides conducted during a single week, December 7-10, 2015. We omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so are left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough number that it is safe to simply omit them. And finally, there are around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations that are omitted, leaving a final dataset of 1,688,673 taxi trips.
 
@@ -167,8 +167,8 @@ To simplify estimation and computation, we will focus on taxi rides conducted du
 \section{Density Estimation}
 We can consider taxi demand as a density estimation problem, where each trip's origination location is a draw from the underlying density. Estimating taxi demand then simply becomes a problem of estimating the underlying (2-dimensional) density of taxi originations.
 
-\subsection{Gaussian Mixture Model}
-In order to estimate the density, we will assume that joint density for $X$ comes from a $J$-component Gaussian mixture model and estimate the model using the EM algorithm, which has been standard since \citet{dempsterlairdrubin77} first introduced it. We introduce a latent variable $Z$ that indicates group membership and get the generative model defined by
+\subsection{Gaussian Mixture Model} \label{sec:gmm}
+In order to estimate the density, we will assume that joint density for $X$ comes from a $J$-component Gaussian mixture model and estimate the model using the EM algorithm, which has been standard since \citet{dempsterlairdrubin77} first introduced the EM algorithm. We introduce a latent variable $Z$ that indicates group membership and have a generative model defined by
 \begin{equation} \label{eq:gmm}
 \begin{aligned}
 Z &\dist \mt{Categorical}(\pi_1, \dots, \pi_J) \\
@@ -185,7 +185,7 @@ The EM algorithm updates are therefore as follows.
 
 \item
   M-step: Estimate the parameters using maximum likelihood estimators conditional on the group probability estimates.
-  \begin{equation}
+  \begin{equation} \label{eq:gmm_mstep}
   \begin{aligned}
   \pi_j^{(t+1)} &= \frac{1}{n} \sum_{i=1}^n p_{ij}^{(t+1)} \\
   \mu_j^{(t+1)} &= \frac{\sum_{i=1}^n p_{ij}^{(t+1)} X_i}{\sum_{i=1}^n p_{ij}^{(t+1)}} \\
@@ -194,9 +194,8 @@ The EM algorithm updates are therefore as follows.
   \end{equation}
 \end{enumerate}
 
-
 \subsection{Time-Varying Mixing Components}
-
+However, the model described in Equation~\ref{eq:gmm} has a major weakness: it does not incorporate time information. We would expect that the demand for taxis may vary significantly over different time periods. To illustrate this, Figure~\ref{fig:diff} plots taxi originations for two time periods, 7am-9am and 10am-12am.\footnote{These subsamples have approximately the same number of observations.} Even using just the raw data, we can identify several areas that exhibit differences. In particular, the morning taxi demand seems to be higher in southwest Brooklyn (-74.00, 40.68), nothern Queens (-73.92, 40.76), the Bronx (-73.90, 40.82), and nothern Manhattan (-73.95, 40.81), while nighttime demand is higher in Williamsburg in northern Brooklyn (-73.94, 40.71). The morning periods in particular are as we might expect, communities that commute into the city during morning rush hour.
 
 \begin{figure}[htbp] \centering
   \begin{subfigure}[t]{.49\linewidth}
@@ -207,31 +206,62 @@ The EM algorithm updates are therefore as follows.
     \includegraphics[width=\linewidth]{./include/diff_night.png}
     \caption{10pm-12am} \label{fig:diff:night}
   \end{subfigure}
-  \caption{Some caption.}
+  \caption{Taxi originations during morning rush hour (7am-9am) and at night (10pm-12am).}
   \label{fig:diff}
 \end{figure}
-% Morning more: Southwest Brooklyn, North Queens, Bronx, North Manhattan
-% Night more: Northern Brooklyn (Williamsburg)
+
+This motivates an extension to the Gaussian mixture model that can incorporate time-varying information. We will assume that the component distributions are the same over time, as it seems reasonable to assume that the location and shape of each cluster is constant. But we will allow the mixing proportions to vary between time periods, allowing the demand from each neighborhood to shift over different time periods. This, for instance, allows for phenomenon such as commuter neighborhoods that have high demand during rush hour but little during the day. It will also hopefully allow us to identify clusters that are only visible during specific time periods.
+
+To account for this, we incorporate an additional variable $Y \in \{1, \dots, K\}$ to track the time period of the obervation $X$. We will assume that $Y$ is fixed and exogenous. Then our model becomes
+\begin{equation} \label{eq:gmm_cat}
+\begin{aligned}
+Z \cond Y = k &\dist \mt{Categorical}(\pi_{k1}, \dots, \pi_{kJ}) \\
+X \cond Z = j &\dist \mt{Gaussian}(\mu_j, \Sigma_j)
+\end{aligned}
+\end{equation}
+The EM algorithm is similar to the one described in Section~\ref{sec:gmm}, replacing the group probability update in Equation~\ref{eq:gmm_estep} with
+\begin{equation} \label{eq:gmm_cat_estep}
+p_{ij}^{(t+1)} = \frac{\pi_{Y_i j}^{(t)} P( X_i \cond \mu_j^{(t)}, \Sigma_j^{(t)})}{\sum_{j'=1}^J \pi_{Y_i j'}^{(t)} P( X_i \cond \mu_{j'}^{(t)}, \Sigma_{j'}^{(t)})}
+\end{equation}
+And replacing the mixing component update in Equation~\ref{eq:gmm_mstep} with
+\begin{equation} \label{eq:gmm_cat_mstep}
+\pi_{kj}^{(t+1)} = \frac{\sum_{i=1}^n \I(Y_i = k) p_{ij}^{(t+1)} }{\sum_{i=1}^n \I(Y_i = k)}
+\end{equation}
+
+Note that the advantage of dividing time into a (small) number of categories and estimating each category's mixing components separately is that it does not add much computational complexity over the standard GMM model. A richer model might be to assume the mixing proportion for each cluster varies smoothly over time and then use a local averaging or kernel regression method instead of Equation~\ref{eq:gmm_cat_mstep}, but this would add a significant computational burden.
 
 
-\begin{figure}[htb] \centering
+\section{Results}
+Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the basic GMM model, described in Equation~\ref{eq:gmm}. We can see that the contours of the estimated density visually correspond well to the raw origination data. Several of the important features of NYC are identifiable, including the overall shape and size of the outer boroughs, the locations of JFK and LaGuardia airports (the two hotspots to the east), and the overall shape of Manhattan and Midtown, including a cool spot in Central Park. The red centers indicate the three clusters with the highest estimated mixing proportions, which together make up around 37\% of originations.
+
+\begin{figure}[tb] \centering
   \includegraphics[width=0.8\linewidth]{./include/gmm_res.png}
-  \caption{Some caption.}
+  \caption{Estimated cluster centers and density of NYC taxi originations using a Gaussian mixture model.}
   \label{fig:gmm_res}
 \end{figure}
-% Midtown hot-spot
-% JFK and LaGuardia airports
+
+To estimate the GMM model with time-varying mixing proportions described in Equation~\ref{eq:gmm_cat}, we first need to divide time into six categories. Attempting to adhere to common-sense work day divisions, I propose using early morning (2am-7am), morning rush hour (7am-9am), work day (9am-4pm), evening rush hour (4pm-6pm), evening (6pm-10pm), and night (10pm-2am). Figure~\ref{fig:time} shows the frequency of taxi pickups over time as well as these proposed categories. We can see that the categories seem to correspond well to natural divisions in data, with boundaries roughly tracking change points in the histogram.
 
 \begin{figure}[htb] \centering
+  \includegraphics[width=0.8\linewidth]{./include/time.png}
+  \caption{Taxi pickups over time with proposed time categories.}
+  \label{fig:time}
+\end{figure}
+
+Figure~\ref{fig:gmm_cat_res} shows the estimated centers for this model. We can see that the centers outside of Manhattan are nearly identical to those in Figure~\ref{fig:gmm_res}, but that the centers inside Manhattan are a little more evenly distributed.
+
+\begin{figure}[tb] \centering
   \includegraphics[width=0.7\linewidth]{./include/gmm_cat_res.png}
-  \caption{Some caption.}
+  \caption{Estimated cluster centers of NYC taxi originations using a Gaussian mixture model with time-varying mixing proportions.}
   \label{fig:gmm_cat_res}
 \end{figure}
+
+Table~\ref{tab:mixing} shows the evolution of mixing proportions for a subset of the clusters. We can see that there is significant variation across time for many of the clusters, and that the patterns can also be very different. JFK (cluster 5) and LaGuardia (cluster 6) have similar patterns over time except for in the early morning, where JFK has a relatively high percentage of taxi originations and LaGuardia has almost none. Or consider southwest Brooklyn (cluster 7), which is primarily busy during rush hour and the work day, compared to Williamsburg (cluster 8), which has more originations at night and in the early morning and very few during the day. Clusters in Mahattan can also be very different, as East Village/Lower East Side (cluster 1) seems to be a night-life area, while the Upper East Side (cluster 0) has relatively few originations at night.
 
 \begin{table}[htb] \centering
 \begin{tabular}{rrrrrrrrrrr}
   \toprule
-   & \multicolumn{5}{c}{City} & \multicolumn{2}{c}{Airport} & \multicolumn{3}{c}{Boroughs} \\
+   & \multicolumn{5}{c}{Manhattan} & \multicolumn{2}{c}{Airports} & \multicolumn{3}{c}{Boroughs} \\
    \cmidrule(lr){2-6} \cmidrule(lr){7-8} \cmidrule(lr){9-11}
    & \multicolumn{1}{c}{0} & \multicolumn{1}{c}{1} & \multicolumn{1}{c}{2} & \multicolumn{1}{c}{3} & \multicolumn{1}{c}{4} & \multicolumn{1}{c}{5} & \multicolumn{1}{c}{6} & \multicolumn{1}{c}{7} & \multicolumn{1}{c}{8} & \multicolumn{1}{c}{9} \\
   \midrule
@@ -243,9 +273,11 @@ The EM algorithm updates are therefore as follows.
   22:00-02:00 &  4.19 &  8.61 & 12.23 &  8.55 & 18.02 &  1.69 &  1.96 &  0.97 &  2.04 &  1.92 \\
   \bottomrule
 \end{tabular}
-\caption{Some caption.}
+\caption{Estimated mixing proportions for a subset of clusters.}
 \label{tab:mixing}
 \end{table}
+
+Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour and late-night. We can see that many of the same patterns visible in Figure~\ref{fig:diff} are also clear here, where the northern and southern boroughs have more originations in the morning while Williamsburg has more originations at night. But using the estimated distributions, we can also identify patterns in Manhattan that were impossible to see with the raw data. For instance, we can clearly see the nighttime hotspot in southern Manhattan that is the Lower East Side, and we can see how northern Manhattan and the Upper East Side have fewer night originations.
 
 \begin{figure}[htbp] \centering
   \begin{subfigure}[t]{.49\linewidth}
@@ -255,6 +287,14 @@ The EM algorithm updates are therefore as follows.
   \begin{subfigure}[t]{.49\linewidth}
     \includegraphics[width=\linewidth]{./include/gmm_cat_night.png}
     \caption{10pm-2am} \label{fig:dist:night}
+  \end{subfigure}
+  \begin{subfigure}[t]{.49\linewidth}
+    \includegraphics[width=\linewidth]{./include/gmm_cat_morn2.png}
+    \caption{7am-9am} \label{fig:dist:morning2}
+  \end{subfigure}
+  \begin{subfigure}[t]{.49\linewidth}
+    \includegraphics[width=\linewidth]{./include/gmm_cat_night2.png}
+    \caption{10pm-2am} \label{fig:dist:night2}
   \end{subfigure}
   \caption{Some caption.}
   \label{fig:dist}
