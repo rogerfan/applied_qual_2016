@@ -148,6 +148,27 @@ ax.set_ylim(40.55, 40.9)
 fig.savefig('./include/diff_night.png', bbox_inches='tight', dpi=250)
 
 
+time = np.array(
+    sdata['pickup_time'].dt.hour + (sdata['pickup_time'].dt.minute/60))
+
+fig = plt.figure(figsize=(9, 5))
+ax = fig.add_subplot(1, 1, 1)
+n, bins, patches = ax.hist(
+    time, 50, normed=1, facecolor='0.5', histtype='stepfilled')
+bounds = [0, 2, 7, 9, 16, 18, 22, 24]
+colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
+          '#ff7f00', '#ffff33', '#e41a1c']
+for i, c in enumerate(colors):
+    ax.plot(bounds[i:(i+2)], [0, 0], color=c,
+            linestyle='-', linewidth=15, solid_capstyle='butt')
+for x in [2, 7, 9, 16, 18, 22]:
+    ax.axvline(x, color='blue')
+ax.set_xlim(0, 24)
+ax.set_xticks([0, 4, 8, 12, 16, 20, 24])
+fig.savefig('./include/time.png', bbox_inches='tight', dpi=200)
+
+
+
 # # BIC
 # np.random.seed(2634)
 # inds = np.random.choice(sd.shape[0], 200000, replace=False)
@@ -262,6 +283,7 @@ ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
 cs = ax.contour(X, Y, Z_morn)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
+ax.set_xticks(np.arange(-74, -73.76, .05))
 fig_morn.savefig('./include/gmm_cat_morn.png', bbox_inches='tight', dpi=250)
 
 fig_night = plt.figure(figsize=(6, 5.4))
@@ -270,4 +292,35 @@ ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
 ax.contour(X, Y, Z_night, levels=cs.levels)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
+ax.set_xticks(np.arange(-74, -73.76, .05))
 fig_night.savefig('./include/gmm_cat_night.png', bbox_inches='tight', dpi=250)
+
+
+x2 = np.linspace(-74.03, -73.91)
+y2 = np.linspace(40.69, 40.83)
+X2, Y2 = np.meshgrid(x2, y2)
+XX2 = np.array([X2.ravel(), Y2.ravel()]).T
+
+Z2_morn = gmm_morn.score_samples(XX2)[0]
+Z2_morn = Z2_morn.reshape(X2.shape)
+
+Z2_night = gmm_night.score_samples(XX2)[0]
+Z2_night = Z2_night.reshape(X2.shape)
+
+fig_morn2 = plt.figure(figsize=(6, 5.4))
+ax = fig_morn2.add_subplot(1, 1, 1)
+ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
+cs2 = ax.contour(X2, Y2, Z2_morn)
+ax.set_xlim(-74.03, -73.91)
+ax.set_ylim(40.69, 40.83)
+fig_morn2.savefig('./include/gmm_cat_morn2.png', bbox_inches='tight', dpi=250)
+
+fig_night2 = plt.figure(figsize=(6, 5.4))
+ax = fig_night2.add_subplot(1, 1, 1)
+ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
+ax.contour(X2, Y2, Z2_night, levels=cs2.levels)
+ax.set_xlim(-74.03, -73.91)
+ax.set_ylim(40.69, 40.83)
+fig_night2.savefig('./include/gmm_cat_night2.png', bbox_inches='tight', dpi=250)
+
+
