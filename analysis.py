@@ -334,3 +334,10 @@ for h in range(6):
     liks[h,0] = gmm_mod.score(sd2[hour_cat2==h]).sum()
     liks[h,1] = gmm_part.score(sd2[hour_cat2==h]).sum()
     liks[h,2] = gmm_cattemp.score(sd2[hour_cat2==h]).sum()
+
+np.save('./logliks.npy', liks)
+
+# BIC
+# -4481212
+# -4481711
+# -4531865
