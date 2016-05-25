@@ -318,7 +318,8 @@ hour_cat2[np.logical_and(16 <= hour2, hour2 < 18)] = 3 # Evening rush
 hour_cat2[np.logical_and(18 <= hour2, hour2 < 22)] = 4 # Evening
 hour_cat2[np.logical_or( 22 <= hour2, hour2 <  2)] = 5 # Night
 
-liks = np.zeros((6, 3))
+liks_train = np.zeros((6, 3))
+liks_test = np.zeros((6, 3))
 for h in range(6):
     np.random.seed(2046)
     gmm_part = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
@@ -331,11 +332,16 @@ for h in range(6):
     gmm_cattemp.covars_ = res_cat[0][1]
     gmm_cattemp.weights_ = res_cat[0][2][h]
 
-    liks[h,0] = gmm_mod.score(sd2[hour_cat2==h]).sum()
-    liks[h,1] = gmm_part.score(sd2[hour_cat2==h]).sum()
-    liks[h,2] = gmm_cattemp.score(sd2[hour_cat2==h]).sum()
+    liks_test[h,0] = gmm_mod.score(sd2[hour_cat2==h]).sum()
+    liks_test[h,1] = gmm_part.score(sd2[hour_cat2==h]).sum()
+    liks_test[h,2] = gmm_cattemp.score(sd2[hour_cat2==h]).sum()
 
-np.save('./logliks.npy', liks)
+    liks_train[h,0] = gmm_mod.score(sd[hour_cat==h]).sum()
+    liks_train[h,1] = gmm_part.score(sd[hour_cat==h]).sum()
+    liks_train[h,2] = gmm_cattemp.score(sd[hour_cat==h]).sum()
+
+np.save('./logliks.npy', liks_test)
+np.save('./logliks_train.npy', liks_train)
 
 # BIC
 # -4481212
