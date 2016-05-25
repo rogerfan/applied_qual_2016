@@ -137,7 +137,7 @@ morning_rush = np.array(np.logical_and(7 <= hour, hour < 9))
 ax.scatter(sd[morning_rush, 0], sd[morning_rush, 1], alpha=0.08, lw=0.1, s=10)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig.savefig('./include/diff_morningrush.png', bbox_inches='tight', dpi=400)
+fig.savefig('./include/diff_morningrush.png', bbox_inches='tight', dpi=250)
 
 fig = plt.figure(figsize=(6, 6))
 ax = fig.add_subplot(1, 1, 1)
@@ -145,12 +145,7 @@ night = np.array(np.logical_and(22 <= hour, hour < 24))
 ax.scatter(sd[night, 0], sd[night, 1], alpha=0.08, lw=0.1, s=10)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig.savefig('./include/diff_night.png', bbox_inches='tight', dpi=400)
-
-plt.plot(np.unique(hour, return_counts=True)[0]+0.5,
-         np.unique(hour, return_counts=True)[1], color='black')
-for x in [2, 7, 9, 16, 18, 22]:
-    plt.axvline(x=x)
+fig.savefig('./include/diff_night.png', bbox_inches='tight', dpi=250)
 
 
 # # BIC
@@ -198,7 +193,7 @@ res_cat = gmm_cat(sd, hour_cat, init_mu, init_sigma, init_pi,
 print(time() - start)
 
 with open('./res_cat30.p', 'wb') as f_:
-    pickle.dump(res_cat, f_)
+    pickle.dump((res_cat[0],), f_)
 
 
 # Plots
@@ -223,7 +218,7 @@ ax.scatter(gmm_mod.means_[big,0], gmm_mod.means_[big,1],
            color='red', s=25, lw=1)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig.savefig('./include/gmm_res.png', bbox_inches='tight', dpi=400)
+fig.savefig('./include/gmm_res.png', bbox_inches='tight', dpi=250)
 
 
 inter = [0, 1, 3, 16, 26]
@@ -244,7 +239,7 @@ for i, j in enumerate(interest):
                 xytext=res_cat[0][0][j]+np.array([0.002, 0.002]))
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig.savefig('./include/gmm_cat_res.png', bbox_inches='tight', dpi=400)
+fig.savefig('./include/gmm_cat_res.png', bbox_inches='tight', dpi=250)
 
 
 gmm_morn = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
@@ -267,7 +262,7 @@ ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
 cs = ax.contour(X, Y, Z_morn)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig_morn.savefig('./include/gmm_cat_morn.png', bbox_inches='tight', dpi=400)
+fig_morn.savefig('./include/gmm_cat_morn.png', bbox_inches='tight', dpi=250)
 
 fig_night = plt.figure(figsize=(6, 5.4))
 ax = fig_night.add_subplot(1, 1, 1)
@@ -275,4 +270,4 @@ ax.scatter(sd[:,0], sd[:,1], alpha=0.08, lw=0.1, s=10, color='0.8')
 ax.contour(X, Y, Z_night, levels=cs.levels)
 ax.set_xlim(-74.05, -73.75)
 ax.set_ylim(40.55, 40.9)
-fig_night.savefig('./include/gmm_cat_night.png', bbox_inches='tight', dpi=400)
+fig_night.savefig('./include/gmm_cat_night.png', bbox_inches='tight', dpi=250)
