@@ -149,11 +149,11 @@
 
 
 \section{Introduction}
-Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, I will show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, I will use taxi origination locations to hopefully proxy for actual taxi demand.
+Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, I will show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, I will use taxi origination locations to hopefully proxy for taxi demand.
 
 I use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows us to effectively condense the information from data on millions of taxi trip originations to a finite number of Gaussian distributions over the city.
 
-However, I expect that the demand for taxis would change over time, a factor that would be vital to most applications of this analysis. To better handle this issue, I design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and an Expectation-Maximization (EM) algorithm to estimate it.
+I expect, however, that the demand for taxis changes over time, a factor that is vital to many applications of this analysis. To better handle this issue, I design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and an Expectation-Maximization (EM) algorithm to estimate it.
 
 
 \section{Data}
@@ -194,7 +194,7 @@ The EM algorithm updates are therefore as follows.
   \end{equation}
 \end{enumerate}
 
-\subsection{Time-Varying Mixing Components}
+\subsection{Time-Varying Mixing Components} \label{sec:gmm_cat}
 However, the model described in Equation~\ref{eq:gmm} has a major weakness: it does not incorporate time information. We would expect that the demand for taxis may vary significantly over different time periods. To illustrate this, Figure~\ref{fig:diff} plots taxi originations for two time periods, 7am-9am and 10am-12am.\footnote{These subsamples have approximately the same number of observations.} Even using just the raw data, we can identify several areas that exhibit differences. In particular, the morning taxi demand seems to be higher in southwest Brooklyn (-74.00, 40.68), nothern Queens (-73.92, 40.76), the Bronx (-73.90, 40.82), and nothern Manhattan (-73.95, 40.81), while nighttime demand is higher in Williamsburg in northern Brooklyn (-73.94, 40.71). The morning periods in particular are as we might expect, communities that commute into the city during morning rush hour.
 
 \begin{figure}[htbp] \centering
@@ -304,7 +304,7 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
 \subsection{Evaluating Fit}
 In order to evaluate the fit of these models, I use a test dataset consisting of 426,194 observations from December 15, 2015. I consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which I call subset-GMM (ssGMM), is the same GMM model estimated separately for each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}.
 
-Table~\ref{tab:logliks} presents test data diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period, as well as the total log-likelihood and the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the likelihood of the model. Lower BICs indicate more parsimonious models.}
+Table~\ref{tab:logliks} presents diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period of the test, as well as the total log-likelihood. I also calculate the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the maximized likelihood of the model. Lower BICs indicate more parsimonious models.}
 
 \begin{table}[htb] \centering
 \begin{tabular}{rrrr}
@@ -319,17 +319,40 @@ Table~\ref{tab:logliks} presents test data diagnostics for these three models. F
   22:00-02:00 &  292844 &  296174 &  \textbf{298605} \\
   \midrule
   Total log-lik &  2240702 &  2241399 &  \textbf{2266101} \\
-  BIC           & -4479083 & -4468876 & \textbf{-4528002} \\
+  In-Sample BIC & -17732572 & -17732375 & \textbf{-17934791} \\
+            % BIC & -4479083 & -4468876 & \textbf{-4528002} \\
   \bottomrule
 \end{tabular}
-\caption{Out-of-sample log-likelihoods and BIC.}
+\caption{Out-of-sample log-likelihoods and in-sample BIC.}
 \label{tab:logliks}
 \end{table}
 
-We can see that overall tvGMM has significantly better out-of-sample fit than either GMM or ssGMM, both in terms of log-likelihood and BIC. In fact, tvGMM even outperforms ssGMM and GMM on all but one of the subsets considered. ssGMM only has a slightly higher log-likelihood than regular GMM and by BIC actually performs worse; the penalty for so many more free parameters outweighs any performance gains they might provide. tvGMM seems to provide a much more effective and efficient way allow for variation across time periods while sharing information when appropriate.
+We can see that, overall, tvGMM has significantly better out-of-sample fit than either GMM or ssGMM. In fact, tvGMM even outperforms ssGMM and GMM on all but one of the subsets considered. ssGMM and GMM have very similar out-of-sample performance in terms of log-likelihood. Looking at BIC, tvGMM again clearly has the best performance, with GMM and ssGMM again performing very similarly. It seems that the penalty for the many more free parameters in ssGMM outweighs any performance gains it might have.
+
+tvGMM seems to provide a much more effective and parsimonious way allow for variation across time periods while sharing information when appropriate. It performs significantly better than both GMM and ssGMM in terms of in-sample and out-of-sample diagnostics.
 
 
 \section{Conclusion}
+In an attempt to proxy for taxi demand in NYC, I have used data on taxi trip origination locations and times to conduct density estimation using Gaussian mixture models. Standard GMMs can effectively estimate the underlying density of taxi originations and recover features of the city and surrouding boroughs, but do not incorporate time, which is an essential factor for many possible applications of this analysis. In order to rememdy this, I design a computationally feasible extension to GMMs that allows for time-varying mixing proportions and present a modified EM algorithm to estimate this model. I show that it can recover both expected and intruiging temporal patterns in the density and that both its in-sample and out-of-sample performance are superior to both the standard GMM and separate GMMs estimated on each subsets.
+
+One improvement to the analysis would be to use data-driven methods to determine the hyperparameters. Due to computational concerns, hyperparameters such as the number of clusters and the time categories were simply chosen, instead of being optimized. Incorporating model selection based on cross-validation, AIC/BIC, or similar techniques could improve performance.
+
+As briefly mentioned in Section~\ref{sec:gmm_cat}, a possible extension to this model is to allow for the mixing proportions to be an arbitrary smooth function of time instead of effectively a step function.
+\begin{equation} \label{eq:gmm_smooth}
+\begin{aligned}
+Z \cond Y = y &\dist \mt{Categorical}(\pi_{1}(y), \dots, \pi_{J}(y)) \\
+X \cond Z = j &\dist \mt{Gaussian}(\mu_j, \Sigma_j)
+\end{aligned}
+\end{equation}
+With a modified EM algorithm where the probability estimates in the M-step are replaced with Nadaraya-Watson estimators \citep[as described in Chapter 6 of][]{esl}.
+\begin{equation}
+\pi^{(t+1)}_j(y) = \frac{\sum_{i=1}^n K(y, Y_i) p_{ij}^{(t+1)}}{\sum_{i=1}^n K(y, Y_i)}
+\end{equation}
+For some kernel function $K$ (other non- or semi-parametric regression estimates could also likely be used). This would be a much richer model that could incorporate complicated temporal patterns. Applications like planning taxi deployment would also likely benefit from the finer temporal resolution. However, the regression step within each EM iteration makes this algorithm computationally difficult when applied to large datasets such as this one.
+
+Another weakness of GMM-based models is that New York is a city with strong structure, where possible pickup locations are restricted by various parks, waterways, and highways. Gaussian distributions are not well-suited to estimating these kinds of hard boundaries. Using kernel density estimators that incorporate kernel warping such as those proposed by \citet{zhoumatteson} could be used to simultaneously respect these structures and share information over time, but doing so in a way that scales computationally is an open challenge.
+
+Finally, when it comes to applications like taxi deployment, number of trips is not the only concern. Factors such as trip destination, length, and overall fares are all potentially important as well. Incorporating this information would be important to move from simply modeling demand to modeling potential revenue or profit.
 
 
 \bibliographystyle{apa}
