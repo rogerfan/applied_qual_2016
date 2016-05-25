@@ -301,6 +301,11 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
 \end{figure}
 
 
+\subsection{Evaluating Fit}
+In order to evaluate the fit of these models, I use a test dataset consisting of 426,194 observations from December 15, 2015. I consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which I call subset-GMM (ssGMM), is the same GMM model estimated separately on each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}.
+
+Table~\ref{tab:logliks} presents test data diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period, as well as the total log-likelihood and the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the likelihood of the model. Lower BICs indicate better models.}
+
 \begin{table}[htb] \centering
 \begin{tabular}{rrrr}
   \toprule
@@ -313,12 +318,15 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
   18:00-22:00 &  601819 &  600960 &  \textbf{606997} \\
   22:00-02:00 &  292844 &  296174 &  \textbf{298605} \\
   \midrule
-  Total       & 2240702 & 2241399 & \textbf{2266101} \\
+  Total log-lik &  2240702 &  2241399 &  \textbf{2266101} \\
+  BIC           & -4479083 & -4468876 & \textbf{-4528002} \\
   \bottomrule
 \end{tabular}
 \caption{Out-of-sample log-likelihoods.}
 \label{tab:logliks}
 \end{table}
+
+We can see that overall tvGMM has significantly better out-of-sample fit than either GMM or ssGMM, both in terms of log-likelihood and BIC. In fact, tvGMM even outperforms ssGMM on all but one of the subsets considered.
 
 
 
