@@ -77,7 +77,7 @@ np.save('./data/data_week_hour.npy', hour)
 sdata2 = pd.read_pickle('./data/data_all.p')
 
 sdata2 = sdata2[sdata2['pickup_time'] >= '2015-12-14 22:00:00']
-sdata2 = sdata2[sdata2['pickup_time'] < '2015-12-15 02:00:00']
+sdata2 = sdata2[sdata2['pickup_time'] < '2015-12-15 22:00:00']
 
 sdata2 = sdata2[sdata2['dropoff_y'] != 0.]
 sdata2 = sdata2[sdata2['pickup_y'] != 0.]
@@ -91,9 +91,10 @@ sdata2 = sdata2[sdata2['dropoff_y'] > 40.2]
 sdata2 = sdata2[sdata2['pickup_y']  < 42]
 sdata2 = sdata2[sdata2['dropoff_y'] < 42]
 print(sdata2.shape[0])
-# 1688673
+# 426194
+
+hour = sdata2['pickup_time'].dt.hour
 
 sd2 = np.array(sdata2[['pickup_x', 'pickup_y']])
-np.save('./data/data_week_test.npy', sd2)
-
-
+np.save('./data/data_test.npy', sd2)
+np.save('./data/data_test_hour.npy', hour)

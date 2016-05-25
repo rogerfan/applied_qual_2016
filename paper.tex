@@ -299,8 +299,28 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
   \caption{Some caption.}
   \label{fig:dist}
 \end{figure}
-% Morning more: Southwest Brooklyn, North Queens, Bronx, North Manhattan
-% Night more: Northern Brooklyn (Williamsburg)
+
+
+\begin{table}[htb] \centering
+\begin{tabular}{rrrr}
+  \toprule
+   & \multicolumn{1}{c}{GMM} & \multicolumn{1}{c}{ssGMM} & \multicolumn{1}{c}{tvGMM} \\
+  \midrule
+  02:00-07:00 &  125126 &  \textbf{128015} &  127873 \\
+  07:00-09:00 &  235173 &  236006 &  \textbf{237738} \\
+  09:00-16:00 &  773825 &  769287 &  \textbf{780562} \\
+  16:00-18:00 &  211914 &  210956 &  \textbf{214326} \\
+  18:00-22:00 &  601819 &  600960 &  \textbf{606997} \\
+  22:00-02:00 &  292844 &  296174 &  \textbf{298605} \\
+  \midrule
+  Total       & 2240702 & 2241399 & \textbf{2266101} \\
+  \bottomrule
+\end{tabular}
+\caption{Out-of-sample log-likelihoods.}
+\label{tab:logliks}
+\end{table}
+
+
 
 
 

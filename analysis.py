@@ -121,7 +121,6 @@ def gmm_cat(data_raw, cat_raw, init_mu, init_sigma, init_pi=None,
 # Handle data
 sdata = pd.read_pickle('./data/data_week.p')
 sd = np.load('./data/data_week_c.npy')
-sd2 = np.load('./data/data_week_test.npy')
 hour = np.load('./data/data_week_hour.npy')
 
 hour_cat = np.zeros(len(hour), dtype=int)           # Early morning
@@ -169,27 +168,6 @@ ax.set_xticks([0, 4, 8, 12, 16, 20, 24])
 fig.savefig('./include/time.pdf', bbox_inches='tight')
 
 
-
-# # BIC
-# np.random.seed(2634)
-# inds = np.random.choice(sd.shape[0], 200000, replace=False)
-# sd_subset = sd[inds]
-# hour_cat_subset = hour_cat[inds]
-
-# np.random.seed(257456)
-# bic = np.array([5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
-# bic = np.column_stack((bic, np.zeros(len(bic))))
-# for i, k in enumerate(bic[:,0]):
-#     print(k)
-#     gmm_mod = GMM(n_components=int(k), covariance_type='full', min_covar=1e-8)
-#     start = time()
-#     gmm_mod.fit(sd_subset)
-#     print(time() - start)
-
-#     bic[i,1] = gmm_mod.bic(sd_subset)
-# np.savetxt('./data/bic.txt', bic)
-
-
 # Run GMM
 k = 30
 
@@ -201,6 +179,8 @@ print(time() - start)
 
 with open('./gmm_mod30.p', 'wb') as f_:
     pickle.dump(gmm_mod, f_)
+# with open('./gmm_mod30.p', 'rb') as f_:
+#     gmm_mod = pickle.load(f_)
 
 
 # Run GMM with categories
@@ -216,6 +196,8 @@ print(time() - start)
 
 with open('./res_cat30.p', 'wb') as f_:
     pickle.dump((res_cat[0],), f_)
+# with open('./res_cat30.p', 'rb') as f_:
+#     res_cat = pickle.load(f_)
 
 
 # Plots
@@ -325,17 +307,30 @@ ax.set_ylim(40.69, 40.83)
 fig_night2.savefig('./include/gmm_cat_night2.png', bbox_inches='tight', dpi=150)
 
 
+# Evaluate out-of-sample fit
+sd2 = np.load('./data/data_test.npy')
+hour2 = np.load('./data/data_test_hour.npy')
 
+hour_cat2 = np.zeros(len(hour2), dtype=int)           # Early morning
+hour_cat2[np.logical_and( 7 <= hour2, hour2 <  9)] = 1 # Morning rush
+hour_cat2[np.logical_and( 9 <= hour2, hour2 < 16)] = 2 # Work day
+hour_cat2[np.logical_and(16 <= hour2, hour2 < 18)] = 3 # Evening rush
+hour_cat2[np.logical_and(18 <= hour2, hour2 < 22)] = 4 # Evening
+hour_cat2[np.logical_or( 22 <= hour2, hour2 <  2)] = 5 # Night
 
-np.random.seed(2046)
-gmm_part = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
-start = time()
-gmm_part.fit(sd[hour_cat==5])
-print(time() - start)
+liks = np.zeros((6, 3))
+for h in range(6):
+    np.random.seed(2046)
+    gmm_part = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
+    start = time()
+    gmm_part.fit(sd[hour_cat==h])
+    print(h, time() - start)
 
-gmm_mod.score(sd2).sum()
-gmm_night.score(sd2).sum()
-gmm_part.score(sd2).sum()
+    gmm_cattemp = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
+    gmm_cattemp.means_ = res_cat[0][0]
+    gmm_cattemp.covars_ = res_cat[0][1]
+    gmm_cattemp.weights_ = res_cat[0][2][h]
 
-
-
+    liks[h,0] = gmm_mod.score(sd2[hour_cat2==h]).sum()
+    liks[h,1] = gmm_part.score(sd2[hour_cat2==h]).sum()
+    liks[h,2] = gmm_cattemp.score(sd2[hour_cat2==h]).sum()
