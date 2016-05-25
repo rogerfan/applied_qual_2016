@@ -151,32 +151,59 @@
 \section{Introduction}
 Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, I will show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, I will use taxi origination locations to hopefully proxy for actual taxi demand.
 
-I use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows me to effectively condense the information from data on millions of taxi trip originations to a finite number of Gaussian distributions over the city.
+I use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows us to effectively condense the information from data on millions of taxi trip originations to a finite number of Gaussian distributions over the city.
 
 However, I expect that the demand for taxis would change over time, a factor that would be vital to most applications of this analysis. To better handle this issue, I design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and an Expectation-Maximization (EM) algorithm to estimate it.
 
 
 \section{Data}
-The NYC Taxi and Limousine Commision (TLC) provides extensive data on taxicab trips in New York City for the last several years. This data includes both Yellow cabs, which primarily pick up street hails in Manhattan and at the airports, and Green cabs, which can only be hailed in northern Manhattan and the outer boroughs.
+The NYC Taxi and Limousine Commision (TLC) provides extensive data on taxicab trips in New York City for the last several years.\footnote{Available at \url{http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml}.} This data includes both yellow cabs, which primarily pick up street hails in Manhattan and at the airports, and green cabs, which can only be hailed in northern Manhattan and the outer boroughs.
 
-The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which I will be able to use directly, and time data is recorded to the minute, though I will only use data at the hourly frequency in this analysis.
+The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which we will be able to use directly, and time data is recorded to the minute, though we will only use data at the hourly frequency in this analysis.
 
-To simplify estimation and computation, I will focus on taxi rides conducted during a single week, December 7-10, 2015. I omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so am left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough number that I feel comfortable simply omitting them. And finally, I remove around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations, leaving me with a final dataset of 1,688,673 taxi trips.
+To simplify estimation and computation, we will focus on taxi rides conducted during a single week, December 7-10, 2015. We omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so are left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough number that it is safe to simply omit them. And finally, there are around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations that are omitted, leaving a final dataset of 1,688,673 taxi trips.
 
 
 \section{Density Estimation}
+We can consider taxi demand as a density estimation problem, where each trip's origination location is a draw from the underlying density. Estimating taxi demand then simply becomes a problem of estimating the underlying (2-dimensional) density of taxi originations.
 
 \subsection{Gaussian Mixture Model}
+In order to estimate the density, we will assume that joint density for $X$ comes from a $J$-component Gaussian mixture model and estimate the model using the EM algorithm, which has been standard since \citet{dempsterlairdrubin77} first introduced it. We introduce a latent variable $Z$ that indicates group membership and get the generative model defined by
+\begin{equation} \label{eq:gmm}
+\begin{aligned}
+Z &\dist \mt{Categorical}(\pi_1, \dots, \pi_J) \\
+X \cond Z = j &\dist \mt{Gaussian}(\mu_j, \Sigma_j)
+\end{aligned}
+\end{equation}
+The EM algorithm updates are therefore as follows.
+\begin{enumerate}
+\item
+  E-step: Estimate the group probabilities $p_{ij}^{(t+1)}$ conditional on the current parameter estimates.
+  \begin{equation} \label{eq:gmm_estep}
+  p_{ij}^{(t+1)} = \frac{\pi_j^{(t)} P( X_i \cond \mu_j^{(t)}, \Sigma_j^{(t)})}{\sum_{j'=1}^J \pi_{j'}^{(t)} P( X_i \cond \mu_{j'}^{(t)}, \Sigma_{j'}^{(t)})}
+  \end{equation}
 
-\subsection{Time-Varying Mixing}
+\item
+  M-step: Estimate the parameters using maximum likelihood estimators conditional on the group probability estimates.
+  \begin{equation}
+  \begin{aligned}
+  \pi_j^{(t+1)} &= \frac{1}{n} \sum_{i=1}^n p_{ij}^{(t+1)} \\
+  \mu_j^{(t+1)} &= \frac{\sum_{i=1}^n p_{ij}^{(t+1)} X_i}{\sum_{i=1}^n p_{ij}^{(t+1)}} \\
+  \Sigma_j^{(t+1)} &= \frac{\sum_{i=1}^n p_{ij}^{(t+1)} (X_i - \mu_j^{(t+1)}) (X_i - \mu_j^{(t+1)})^T}{\sum_{i=1}^n p_{ij}^{(t+1)}}
+  \end{aligned}
+  \end{equation}
+\end{enumerate}
+
+
+\subsection{Time-Varying Mixing Components}
 
 
 
 \section{Conclusion}
 
 
-% \bibliographystyle{apa}
-% \bibliography{biblio}
+\bibliographystyle{apa}
+\bibliography{biblio}
 
 
 \end{document}
