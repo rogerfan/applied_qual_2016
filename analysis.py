@@ -121,6 +121,7 @@ def gmm_cat(data_raw, cat_raw, init_mu, init_sigma, init_pi=None,
 # Handle data
 sdata = pd.read_pickle('./data/data_week.p')
 sd = np.load('./data/data_week_c.npy')
+sd2 = np.load('./data/data_week_test.npy')
 hour = np.load('./data/data_week_hour.npy')
 
 hour_cat = np.zeros(len(hour), dtype=int)           # Early morning
@@ -322,5 +323,19 @@ ax.contour(X2, Y2, Z2_night, levels=cs2.levels)
 ax.set_xlim(-74.03, -73.91)
 ax.set_ylim(40.69, 40.83)
 fig_night2.savefig('./include/gmm_cat_night2.png', bbox_inches='tight', dpi=150)
+
+
+
+
+np.random.seed(2046)
+gmm_part = GMM(n_components=k, covariance_type='full', min_covar=1e-8)
+start = time()
+gmm_part.fit(sd[hour_cat==5])
+print(time() - start)
+
+gmm_mod.score(sd2).sum()
+gmm_night.score(sd2).sum()
+gmm_part.score(sd2).sum()
+
 
 

@@ -65,14 +65,35 @@ sdata = sdata[sdata['dropoff_y'] < 42]
 print(sdata.shape[0])
 # 1688673
 
-
-# np.random.seed(2634)
-# inds = np.random.choice(sdata.shape[0], 100000, replace=False)
-# sdata = data.iloc[inds]
-
 sd = np.array(sdata[['pickup_x', 'pickup_y']])
 hour = sdata['pickup_time'].dt.hour
 
 sdata.to_pickle('./data/data_week.p')
 np.save('./data/data_week_c.npy', sd)
 np.save('./data/data_week_hour.npy', hour)
+
+
+# Test data.
+sdata2 = pd.read_pickle('./data/data_all.p')
+
+sdata2 = sdata2[sdata2['pickup_time'] >= '2015-12-14 22:00:00']
+sdata2 = sdata2[sdata2['pickup_time'] < '2015-12-15 02:00:00']
+
+sdata2 = sdata2[sdata2['dropoff_y'] != 0.]
+sdata2 = sdata2[sdata2['pickup_y'] != 0.]
+
+sdata2 = sdata2[sdata2['pickup_x']  < -73]
+sdata2 = sdata2[sdata2['dropoff_x'] < -73]
+sdata2 = sdata2[sdata2['pickup_x']  > -75]
+sdata2 = sdata2[sdata2['dropoff_x'] > -75]
+sdata2 = sdata2[sdata2['pickup_y']  > 40.2]
+sdata2 = sdata2[sdata2['dropoff_y'] > 40.2]
+sdata2 = sdata2[sdata2['pickup_y']  < 42]
+sdata2 = sdata2[sdata2['dropoff_y'] < 42]
+print(sdata2.shape[0])
+# 1688673
+
+sd2 = np.array(sdata2[['pickup_x', 'pickup_y']])
+np.save('./data/data_week_test.npy', sd2)
+
+
