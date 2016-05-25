@@ -232,11 +232,11 @@ Note that the advantage of dividing time into a (small) number of categories and
 
 
 \section{Results}
-Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the basic GMM model, described in Equation~\ref{eq:gmm}. We can see that the contours of the estimated density visually correspond well to the raw origination data. Several of the important features of NYC are identifiable, including the overall shape and size of the outer boroughs, the locations of JFK and LaGuardia airports (the two hotspots to the east), and the overall shape of Manhattan and Midtown, including a cool spot in Central Park. The red centers indicate the three clusters with the highest estimated mixing proportions, which together make up around 37\% of originations.
+Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the basic GMM model with $J=30$ components, as described in Equation~\ref{eq:gmm}. We can see that the contours of the estimated density visually correspond well to the raw origination data. Several of the important features of NYC are identifiable, including the overall shape and size of the outer boroughs, the locations of JFK and LaGuardia airports (the two hotspots to the east), and the overall shape of Manhattan and Midtown, including a cool spot in Central Park. The red centers indicate the three clusters with the highest estimated mixing proportions, which together make up around 37\% of originations.
 
 \begin{figure}[tb] \centering
   \includegraphics[width=0.8\linewidth]{./include/gmm_res.png}
-  \caption{Estimated cluster centers and density of NYC taxi originations using a Gaussian mixture model.}
+  \caption{Estimated cluster centers and density of NYC taxi originations using a Gaussian mixture model with $J=30$ components.}
   \label{fig:gmm_res}
 \end{figure}
 
@@ -252,7 +252,7 @@ Figure~\ref{fig:gmm_cat_res} shows the estimated centers for this model. We can 
 
 \begin{figure}[tb] \centering
   \includegraphics[width=0.7\linewidth]{./include/gmm_cat_res.png}
-  \caption{Estimated cluster centers of NYC taxi originations using a Gaussian mixture model with time-varying mixing proportions.}
+  \caption{Estimated cluster centers of NYC taxi originations using a Gaussian mixture model with time-varying mixing proportions. $K=30$ components and $K=6$ time categories are used.}
   \label{fig:gmm_cat_res}
 \end{figure}
 
@@ -296,15 +296,15 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
     \includegraphics[width=\linewidth]{./include/gmm_cat_night2.png}
     \caption{10pm-2am} \label{fig:dist:night2}
   \end{subfigure}
-  \caption{Some caption.}
+  \caption{Estimated trip origination densities for two time periods using GMM with time-varying mixing proportions.}
   \label{fig:dist}
 \end{figure}
 
 
 \subsection{Evaluating Fit}
-In order to evaluate the fit of these models, I use a test dataset consisting of 426,194 observations from December 15, 2015. I consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which I call subset-GMM (ssGMM), is the same GMM model estimated separately on each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}.
+In order to evaluate the fit of these models, I use a test dataset consisting of 426,194 observations from December 15, 2015. I consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which I call subset-GMM (ssGMM), is the same GMM model estimated separately for each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}.
 
-Table~\ref{tab:logliks} presents test data diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period, as well as the total log-likelihood and the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the likelihood of the model. Lower BICs indicate better models.}
+Table~\ref{tab:logliks} presents test data diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period, as well as the total log-likelihood and the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the likelihood of the model. Lower BICs indicate more parsimonious models.}
 
 \begin{table}[htb] \centering
 \begin{tabular}{rrrr}
@@ -322,14 +322,11 @@ Table~\ref{tab:logliks} presents test data diagnostics for these three models. F
   BIC           & -4479083 & -4468876 & \textbf{-4528002} \\
   \bottomrule
 \end{tabular}
-\caption{Out-of-sample log-likelihoods.}
+\caption{Out-of-sample log-likelihoods and BIC.}
 \label{tab:logliks}
 \end{table}
 
-We can see that overall tvGMM has significantly better out-of-sample fit than either GMM or ssGMM, both in terms of log-likelihood and BIC. In fact, tvGMM even outperforms ssGMM on all but one of the subsets considered.
-
-
-
+We can see that overall tvGMM has significantly better out-of-sample fit than either GMM or ssGMM, both in terms of log-likelihood and BIC. In fact, tvGMM even outperforms ssGMM and GMM on all but one of the subsets considered. ssGMM only has a slightly higher log-likelihood than regular GMM and by BIC actually performs worse; the penalty for so many more free parameters outweighs any performance gains they might provide. tvGMM seems to provide a much more effective and efficient way allow for variation across time periods while sharing information when appropriate.
 
 
 \section{Conclusion}
