@@ -149,11 +149,11 @@
 
 
 \section{Introduction}
-Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, I will show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, I will use taxi origination locations to hopefully proxy for taxi demand.
+Demand estimation is a crucial problem for taxicab companies (and potentially other ride-share services), allowing them to more effectively plan and adjust deployments. Using a dataset of New York City taxi trip data, we show how clustering and density estimation techniques can be applied to this problem. Although taxi trip originations are not perfect indicators of demand, as a completed trip requires both the demand for a trip and a taxi available to supply it, we use taxi origination locations to hopefully proxy for taxi demand.
 
-I use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows us to effectively condense the information from data on millions of taxi trip originations to a finite number of Gaussian distributions over the city.
+We use a Gaussian mixture model (GMM) to estimate the density of trip origination locations in New York City. This method allows us to effectively condense the information from millions of taxi trip originations to a manageable number of Gaussian distributions over the city.
 
-I expect, however, that the demand for taxis changes over time, a factor that is vital to many applications of this analysis. To better handle this issue, I design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and an Expectation-Maximization (EM) algorithm to estimate it.
+We expect, however, that the demand for taxis changes over time, a factor that is vital to many applications of this analysis. To better handle this issue, we design a extension to the standard Gaussian mixture model that allows for time-varying mixing weights and use an Expectation-Maximization (EM) algorithm to estimate it.
 
 
 \section{Data}
@@ -161,14 +161,15 @@ The NYC Taxi and Limousine Commision (TLC) provides extensive data on taxicab tr
 
 The primary variables of interest are the time and location of each trip's pickup and dropoff. Location data is encoded as latitude and longitude, which we will be able to use directly, and time data is recorded to the second, though we will primarily be using data at the hourly frequency in this analysis.
 
-To simplify estimation and computation, we will focus on taxi rides conducted during a single week, December 7-10, 2015. We omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so are left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough number that it is safe to simply omit them. And finally, there are around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations that are omitted, leaving a final dataset of 1,688,673 taxi trips.
+To simplify estimation and computation, we will focus on taxi rides conducted during a single week, December 7-10, 2015. We omit Friday-Sunday of the week to avoid complicating the analysis with weekend data, and so are left with four days of weekday data, consisting of just over 1.7 million individual taxi rides. Of these, around 25 thousand are missing location data, which is a small enough proportion that it is safe to simply omit them. And finally, we omit around 100 outlier trips that have nonsensical or extreme pickup or dropoff locations, leaving a final training dataset of 1,688,673 taxi trips.
 
 
 \section{Density Estimation}
-We can consider taxi demand as a density estimation problem, where each trip's origination location is a draw from the underlying density. Estimating taxi demand then simply becomes a problem of estimating the underlying (2-dimensional) density of taxi originations.
+We can consider approximating taxi demand to be a density estimation problem, where each trip's pickup location is a draw from an underlying distribution. Estimating taxi demand then simply becomes a problem of estimating the (2-dimensional) density of taxi originations.
+
 
 \subsection{Gaussian Mixture Model} \label{sec:gmm}
-In order to estimate the density, we will assume that joint density for $X$ comes from a $J$-component Gaussian mixture model and estimate the model using the EM algorithm, which has been standard since \citet{dempsterlairdrubin77} first introduced the EM algorithm. We introduce a latent variable $Z$ that indicates group membership and have a generative model defined by
+In order to estimate the density, we will assume that joint density for $X$ comes from a $J$-component Gaussian mixture model and maximize the likelihood using the EM algorithm, which has been the standard estimation procedure for mixture models since \citet{dempsterlairdrubin77} first introduced the EM algorithm. We introduce a latent variable $Z$ that indicates group membership and have a generative model defined by
 \begin{equation} \label{eq:gmm}
 \begin{aligned}
 Z &\dist \mt{Categorical}(\pi_1, \dots, \pi_J) \\
@@ -195,7 +196,7 @@ The EM algorithm updates are therefore as follows.
 \end{enumerate}
 
 \subsection{Time-Varying Mixing Components} \label{sec:gmm_cat}
-However, the model described in Equation~\ref{eq:gmm} has a major weakness: it does not incorporate time information. We would expect that the demand for taxis may vary significantly over different time periods. To illustrate this, Figure~\ref{fig:diff} plots taxi originations for two time periods, 7am-9am and 10am-12am.\footnote{These subsamples have approximately the same number of observations.} Even using just the raw data, we can identify several areas that exhibit differences. In particular, the morning taxi demand seems to be higher in southwest Brooklyn (-74.00, 40.68), nothern Queens (-73.92, 40.76), the Bronx (-73.90, 40.82), and nothern Manhattan (-73.95, 40.81), while nighttime demand is higher in Williamsburg in northern Brooklyn (-73.94, 40.71). The morning periods in particular are as we might expect, communities that commute into the city during morning rush hour.
+However, the model described in Equation~\ref{eq:gmm} has a major weakness: it does not use temporal information. We expect that the demand for taxis could vary significantly over different time periods. To illustrate this, Figure~\ref{fig:diff} plots taxi originations for two time periods, 7am-9am and 10am-12am.\footnote{These subsamples have approximately the same number of observations.} Even using just the raw data, we can visually identify several areas that exhibit differences. In particular, the morning taxi demand seems to be higher in southwest Brooklyn (-74.00, 40.68), northern Queens (-73.92, 40.76), the Bronx (-73.90, 40.82), and northern Manhattan (-73.95, 40.81), while nighttime demand is higher in Williamsburg in northern Brooklyn (-73.94, 40.71). The morning periods in particular are as we might expect, all communities that commute into the city during morning rush hour.
 
 \begin{figure}[htbp] \centering
   \begin{subfigure}[t]{.49\linewidth}
@@ -210,9 +211,9 @@ However, the model described in Equation~\ref{eq:gmm} has a major weakness: it d
   \label{fig:diff}
 \end{figure}
 
-This motivates an extension to the Gaussian mixture model that can incorporate time-varying information. We will assume that the component distributions are the same over time, as it seems reasonable to assume that the location and shape of each cluster is constant. But we will allow the mixing proportions to vary between time periods, allowing the demand from each neighborhood to shift over different time periods. This, for instance, allows for phenomenon such as commuter neighborhoods that have high demand during rush hour but little during the day. It will also hopefully allow us to identify clusters that are only visible during specific time periods.
+This motivates extending the Gaussian mixture model to incorporate temporal information. We will assume that the component distributions are the same over time, as if clusters are approximating neighborhoods then it seems reasonable to assume that the location and shape of each cluster is constant. But we will allow the mixing proportions to vary between time periods, allowing the demand from each neighborhood to shift over time. This, for instance, allows for phenomenon such as commuter neighborhoods that have high demand during rush hour but little during the evening. It will also hopefully allow us to identify clusters that are only visible during specific time periods.
 
-To account for this, we incorporate an additional variable $Y \in \{1, \dots, K\}$ to track the time period of the obervation $X$. We will assume that $Y$ is fixed and exogenous. Then our model becomes
+To account for this, we use an additional observed variable $Y \in \{1, \dots, K\}$ that tracks the time period of each obervation $X$. We will assume that $Y$ is fixed and exogenous. Then our model becomes
 \begin{equation} \label{eq:gmm_cat}
 \begin{aligned}
 Z \cond Y = k &\dist \mt{Categorical}(\pi_{k1}, \dots, \pi_{kJ}) \\
@@ -232,7 +233,7 @@ Note that the advantage of dividing time into a (small) number of categories and
 
 
 \section{Results}
-Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the basic GMM model with $J=30$ components, as described in Equation~\ref{eq:gmm}. We can see that the contours of the estimated density visually correspond well to the raw origination data. Several of the important features of NYC are identifiable, including the overall shape and size of the outer boroughs, the locations of JFK and LaGuardia airports (the two hotspots to the east), and the overall shape of Manhattan and Midtown, including a cool spot in Central Park. The red centers indicate the three clusters with the highest estimated mixing proportions, which together make up around 37\% of originations.
+Figure~\ref{fig:gmm_res} shows the estimated density of the basic GMM model (Equation~\ref{eq:gmm}) with $J=30$ components as well as each of the cluster means. We can see that the contours of the estimated density visually correspond well to the raw origination data. Several of the important features of NYC are identifiable, including the overall shape and size of the outer boroughs, the locations of JFK and LaGuardia airports (the two hotspots to the east), and the overall shape of Manhattan and Midtown, including a cool spot in Central Park. The red centers indicate the three clusters with the highest estimated mixing proportions, which together make up around 37\% of originations.
 
 \begin{figure}[tb] \centering
   \includegraphics[width=0.8\linewidth]{./include/gmm_res.png}
@@ -240,15 +241,17 @@ Figure~\ref{fig:gmm_res} shows the estimated cluster centers and density of the 
   \label{fig:gmm_res}
 \end{figure}
 
-To estimate the GMM model with time-varying mixing proportions described in Equation~\ref{eq:gmm_cat}, we first need to divide time into six categories. Attempting to adhere to common-sense work day divisions, I propose using early morning (2am-7am), morning rush hour (7am-9am), work day (9am-4pm), evening rush hour (4pm-6pm), evening (6pm-10pm), and night (10pm-2am). Figure~\ref{fig:time} shows the frequency of taxi pickups over time as well as these proposed categories. We can see that the categories seem to correspond well to natural divisions in data, with boundaries roughly tracking change points in the histogram.
+Though this is effective for summarizing and visualizing the data and captures many of the relevant features of the data and city, it is not particularly effective for planning deployments or estimating demand since it does not allow for time-dependent predictions. Therefore, our next step is to estimate a model that incorporates temporal information.
 
-\begin{figure}[htb] \centering
+To estimate the GMM model with time-varying mixing proportions described in Equation~\ref{eq:gmm_cat}, we first need to divide time into categories. Attempting to adhere to common-sense work day divisions, we propose using six categories: early morning (2am-7am), morning rush hour (7am-9am), work day (9am-4pm), evening rush hour (4pm-6pm), evening (6pm-10pm), and night (10pm-2am). Figure~\ref{fig:time} shows the frequency of taxi pickups over time as well as these proposed categories. We can see that the categories seem to correspond well to natural divisions in data, with boundaries that roughly track change points in the frequency over time.
+
+\begin{figure}[tb] \centering
   \includegraphics[width=0.8\linewidth]{./include/time.pdf}
   \caption{Taxi pickups over time with proposed time categories.}
   \label{fig:time}
 \end{figure}
 
-Figure~\ref{fig:gmm_cat_res} shows the estimated centers for this model. We can see that the centers outside of Manhattan are nearly identical to those in Figure~\ref{fig:gmm_res}, but that the centers inside Manhattan are a little more evenly distributed.
+Figure~\ref{fig:gmm_cat_res} shows the estimated centers for this model. We can see that the centers outside of Manhattan are nearly identical to those in Figure~\ref{fig:gmm_res}, but that the centers inside Manhattan are fairly different. It is notable that the estimated component distributions are noticeably different than the basic GMM model, hopefully adding time-varying mixing proportions is allowing the model to identify previously difficult-to-separate components.
 
 \begin{figure}[tb] \centering
   \includegraphics[width=0.7\linewidth]{./include/gmm_cat_res.png}
@@ -256,9 +259,9 @@ Figure~\ref{fig:gmm_cat_res} shows the estimated centers for this model. We can 
   \label{fig:gmm_cat_res}
 \end{figure}
 
-Table~\ref{tab:mixing} shows the evolution of mixing proportions for a subset of the clusters. We can see that there is significant variation across time for many of the clusters, and that the patterns can also be very different. JFK (cluster 5) and LaGuardia (cluster 6) have similar patterns over time except for in the early morning, where JFK has a relatively high percentage of taxi originations and LaGuardia has almost none. Or consider southwest Brooklyn (cluster 7), which is primarily busy during rush hour and the work day, compared to Williamsburg (cluster 8), which has more originations at night and in the early morning and very few during the day. Clusters in Mahattan can also be very different, as East Village/Lower East Side (cluster 1) seems to be a night-life area, while the Upper East Side (cluster 0) has relatively few originations at night.
+Table~\ref{tab:mixing} shows the evolution of mixing proportions for a subset of the clusters. We can see that there is significant variation across time for many of the clusters, and that the patterns can also be very different. JFK (cluster 5) and LaGuardia (cluster 6) have similar patterns over time except for in the early morning, where JFK has a relatively high percentage of taxi originations and LaGuardia has almost none. Or consider southwest Brooklyn (cluster 7), which is primarily busy during rush hour and the work day, compared to Williamsburg (cluster 8), which has more originations at night and in the early morning and very few during the day. Clusters in Mahattan can also be very different, as the Lower East Side (cluster 1) seems to be a night-life area, while the Upper East Side (cluster 0) has relatively few originations at night. Also note that cluster 1 is one of those that the basic GMM model was unable to find; it's unique temporal pattern allows this model to identify it.
 
-\begin{table}[htb] \centering
+\begin{table}[H] \centering
 \begin{tabular}{rrrrrrrrrrr}
   \toprule
    & \multicolumn{5}{c}{Manhattan} & \multicolumn{2}{c}{Airports} & \multicolumn{3}{c}{Boroughs} \\
@@ -302,9 +305,9 @@ Figure~\ref{fig:dist} compares the estimated distributions for morning rush hour
 
 
 \subsection{Evaluating Fit}
-In order to evaluate the fit of these models, I use a test dataset consisting of 426,194 observations from December 15, 2015. I consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which I call subset-GMM (ssGMM), is the same GMM model estimated separately for each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}.
+In order to evaluate the fit of these models, we use a test dataset consisting of 426,194 observations from December 15, 2015. We consider three models. The first is the standard GMM model described in Equation~\ref{eq:gmm}. The second, which we call subset-GMM (ssGMM), is the same GMM model estimated separately for each of the six time category subsets. And the third is the GMM model with time-varying mixing proportions (tvGMM) as described in Equation~\ref{eq:gmm_cat}. Note that GMM is nested inside tvGMM which is in turn nested in ssGMM.
 
-Table~\ref{tab:logliks} presents diagnostics for these three models. For each model, I calculate the log-likelihood contribution for each time period of the test, as well as the total log-likelihood. I also calculate the Bayesian information criterion (BIC) for each model.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the maximized likelihood of the model. Lower BICs indicate more parsimonious models.}
+Table~\ref{tab:logliks} presents diagnostics for these three models. For each model, we calculate the log-likelihood contribution for each time period of the test data, as well as the total test log-likelihood. We also calculate the Bayesian information criterion (BIC) for each model on the training data to evaluate in-sample performance.\footnote{BIC is calculated as $p \log n - 2 \log L$, where $p$ is the number of estimated parameters, $n$ is the number of observations, and $L$ is the maximized likelihood of the model. Lower BICs indicate more parsimonious models.}
 
 \begin{table}[htb] \centering
 \begin{tabular}{rrrr}
@@ -327,17 +330,17 @@ Table~\ref{tab:logliks} presents diagnostics for these three models. For each mo
 \label{tab:logliks}
 \end{table}
 
-We can see that, overall, tvGMM has significantly better out-of-sample fit than either GMM or ssGMM. In fact, tvGMM even outperforms ssGMM and GMM on all but one of the subsets considered. ssGMM and GMM have very similar out-of-sample performance in terms of log-likelihood. Looking at BIC, tvGMM again clearly has the best performance, with GMM and ssGMM again performing very similarly. It seems that the penalty for the many more free parameters in ssGMM outweighs any performance gains it might have.
+We can see that, overall, tvGMM has significantly better out-of-sample fit than either GMM or ssGMM. In fact, tvGMM outperforms ssGMM and GMM on all but one of the subsets considered. ssGMM and GMM have very similar out-of-sample performance in terms of log-likelihood. In terms of BIC, tvGMM again clearly has the best performance, with GMM and ssGMM performing similarly. It seems that the penalty for the many more free parameters in ssGMM outweighs any performance gains it might have.
 
 tvGMM seems to provide a much more effective and parsimonious way allow for variation across time periods while sharing information when appropriate. It performs significantly better than both GMM and ssGMM in terms of in-sample and out-of-sample diagnostics.
 
 
 \section{Conclusion}
-In an attempt to proxy for taxi demand in NYC, I have used data on taxi trip origination locations and times to conduct density estimation using Gaussian mixture models. Standard GMMs can effectively estimate the underlying density of taxi originations and recover features of the city and surrouding boroughs, but do not incorporate time, which is an essential factor for many possible applications of this analysis. In order to rememdy this, I design a computationally feasible extension to GMMs that allows for time-varying mixing proportions and present a modified EM algorithm to estimate this model. I show that it can recover both expected and intruiging temporal patterns in the density and that both its in-sample and out-of-sample performance are superior to both the standard GMM and separate GMMs estimated on each subsets.
+In an attempt to proxy for taxi demand in NYC, we have used data on taxi trip origination locations and times to conduct density estimation using Gaussian mixture models. Standard GMMs can effectively estimate the underlying density of taxi originations and recover features of the city and surrouding boroughs, but do not incorporate time, which is an essential factor for many possible applications of this analysis. In order to remedy this, we design a computationally feasible extension to the GMM that allows for time-varying mixing proportions and present a modified EM algorithm to estimate this model. This model effectively recovers temporal patterns in the density and both its in-sample and out-of-sample performance are superior to both the standard GMM and separate GMMs estimated on each subset.
 
 One improvement to the analysis would be to use data-driven methods to determine the hyperparameters. Due to computational concerns, hyperparameters such as the number of clusters and the time categories were simply chosen, instead of being optimized. Incorporating model selection based on cross-validation, AIC/BIC, or similar techniques could improve performance.
 
-As briefly mentioned in Section~\ref{sec:gmm_cat}, a possible extension to this model is to allow for the mixing proportions to be an arbitrary smooth function of time instead of effectively a step function.
+As briefly mentioned in Section~\ref{sec:gmm_cat}, a possible extension to this model is to allow for the mixing proportions to be an arbitrary smooth function of time instead of effectively a step function. For some smooth functions $\pi_1, \dots, \pi_J$, the corresponding model is then described by:
 \begin{equation} \label{eq:gmm_smooth}
 \begin{aligned}
 Z \cond Y = y &\dist \mt{Categorical}(\pi_{1}(y), \dots, \pi_{J}(y)) \\
@@ -348,11 +351,11 @@ With a modified EM algorithm where the probability estimates in the M-step are r
 \begin{equation}
 \pi^{(t+1)}_j(y) = \frac{\sum_{i=1}^n K(y, Y_i) p_{ij}^{(t+1)}}{\sum_{i=1}^n K(y, Y_i)}
 \end{equation}
-For some kernel function $K$ (other non- or semi-parametric regression estimates could also likely be used). This would be a much richer model that could incorporate complicated temporal patterns. Applications like planning taxi deployment would also likely benefit from the finer temporal resolution. However, the regression step within each EM iteration makes this algorithm computationally difficult when applied to large datasets such as this one.
+For some kernel function $K$ (other non- or semi-parametric regression estimates could also likely be used). This is a much richer model that can estimate complicated temporal patterns, and applications like planning taxi deployment would likely benefit from the finer temporal resolution. However, the regression step within each EM iteration makes this algorithm computationally difficult when applied to large datasets such as this one.
 
-Another weakness of GMM-based models is that New York is a city with strong structure, where possible pickup locations are restricted by various parks, waterways, and highways. Gaussian distributions are not well-suited to estimating these kinds of hard boundaries. Using kernel density estimators that incorporate kernel warping such as those proposed by \citet{zhoumatteson} could be used to simultaneously respect these structures and share information over time, but doing so in a way that scales computationally is an open challenge.
+Another weakness of GMM-based models is that New York is a city with strong structure, where possible pickup locations are restricted by various parks, waterways, highways, legal boundaries, etc. Gaussian distributions are not well-suited to estimating these kinds of hard boundaries. Kernel density estimators with kernel warping such as those proposed by \citet{zhoumatteson} could be used to simultaneously respect these structures and share information over time, but doing so in a way that scales computationally could be challenging.
 
-Finally, when it comes to applications like taxi deployment, number of trips is not the only concern. Factors such as trip destination, length, and overall fares are all potentially important as well. Incorporating this information would be important to move from simply modeling demand to modeling potential revenue or profit.
+Finally, when it comes to applications like taxi deployment, the number of trips is not the only concern. Factors such as trip destination, length, and overall fares are all potentially important as well, and data on all these factors is also provided by the TLC. Incorporating this additional information would be important to move from simply modeling demand to modeling potential revenue or profit.
 
 
 \bibliographystyle{apa}
